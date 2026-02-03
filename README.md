@@ -52,9 +52,19 @@ Once finished the new video will be available at https://dash.erg.abdn.ac.uk.
 ### Change the latency of the delay emulator server
 - SSH into the delay emulator server
 - once logged in, run command sudo python3 config_pipes.py desired-bandwidth-in-mbps desired-delay-in-ms (e.g. ```sudo python3 config_pipes.py 25 600``` will configure the delay to be 600 ms and the BW to be 25 Mbps)
-- check this has worked by pinging the QUIC/DASH server from your laptop (```ping 192.168.99.100```)
+- check this has worked by pinging the QUIC/DASH server from your laptop (```ping 192.168.99.100```). You should see the latency you configured.
 
-### Running experiments
+### Running experiments with emulated delay
 - connect using one of the provided blue ethernet cables from your laptop to ports 1-4 of client-sw, and turn off other networks like WiFi
-- Change the latency of the delay emulator server to the desired one for experimentation
+- change the latency of the delay emulator server to the desired one for experimentation
 - go to https://dash.erg.abdn.ac.uk
+
+### Running experiments over the satellite link
+- connect using one of the provided green ethernet cables from your laptop to ports FN3/2/041 on the wall to the left of the testbed. This will give you an connection over the satellite network.
+- check this has worked by pinging from your laptop (```ping 8.8.8.8```). You should see a latency of around 640ms.
+- Go to https://dash.erg.abdn.ac.uk
+
+### Very simple waterfall diagrams
+- in Firefox, open the developer tools using F12, and navigate to the network tab.
+- after watching the desired length of any DASH video, click the settings button and select 'Export as HAR' file. A similar procedure is available in the Developer tools for Google Chrome.
+- the HAR files can be visualised here: http://www.softwareishard.com/har/viewer/
