@@ -13,12 +13,6 @@
 - Copy Switch (copy-sw): An HP 24-port switch. This is required to mirror the traffic intended for the quic/dash server (coming from both internet and local paths) to the pcap-store. The researcher will not need to plug into this switch, but it may be useful to know ports 1-8 are configured for the local network, 9-16 on the Internet network, and port 20 is the mirror interface.
 - PCAP Store (pcap-store): An APU4 board running Debian 13. The researcher can connect to it on its local IP address, 192.168.99.151. It receives mirror traffic on interface enp3s0.
   
-## Testbed diagram
-<img width="1957" height="1857" alt="testbed-oct-25" src="https://github.com/user-attachments/assets/676c4b9a-b179-4bd6-8b1a-9cf9d14b7d2a" />
-
-
-Download the diagram: [testbed-oct-25.pdf](https://github.com/user-attachments/files/25049991/testbed-oct-25.pdf)
-
 ## HOW TOs
 ### SSH into the DASH/QUIC server
 - connect using one of the provided blue ethernet cables from your laptop to ports 1-4 of client-sw
@@ -60,7 +54,7 @@ Once finished the new video will be available at https://dash.erg.abdn.ac.uk.
 - go to https://dash.erg.abdn.ac.uk
 
 ### Running experiments over the satellite link
-- connect using one of the provided green ethernet cables from your laptop to ports FN3/2/041 on the wall to the left of the testbed. This will give you an connection over the satellite network.
+- connect using one of the provided green ethernet cable from your laptop to ports FN3/2/041 on the wall to the left of the testbed. This will give you an connection over the satellite network.
 - check this has worked by pinging from your laptop (```ping 8.8.8.8```). You should see a latency of around 640ms.
 - Go to https://dash.erg.abdn.ac.uk
 
@@ -68,3 +62,9 @@ Once finished the new video will be available at https://dash.erg.abdn.ac.uk.
 - in Firefox, open the developer tools using F12, and navigate to the network tab.
 - after watching the desired length of any DASH video, click the settings button and select 'Export as HAR' file. A similar procedure is available in the Developer tools for Google Chrome.
 - the HAR files can be visualised here: http://www.softwareishard.com/har/viewer/
+
+## Testbed diagram
+<img width="1957" height="1857" alt="testbed-oct-25" src="https://github.com/user-attachments/assets/f326c4d2-3291-4107-a233-7ba431da72a9" />
+
+Download the diagram: [testbed-oct-25.pdf](https://github.com/user-attachments/files/25049991/testbed-oct-25.pdf)
+
