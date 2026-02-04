@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Advanced Telemetry Player</title>
+  <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #eee; }
+    video { width: 80%; margin: 20px 0; }
+    button { margin-right: 10px; }
+    pre {
+      background: #000;
+      padding: 10px;
+      height: 320px;
+      overflow: auto;
+      font-size: 12px;
+    }
+    .stats { margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<h2>DASH Telemetry</h2>
+
+<video id="video" controls></video>
+
+<div class="stats">
+  <div>Current Bitrate: <span id="bitrate">–</span> kbps</div>
+  <div>Estimated Throughput: <span id="throughput">–</span> kbps</div>
+  <div>Buffer Level: <span id="buffer">–</span> s</div>
+</div>
+
+<br>
+
+<button onclick="downloadLogs()">Download Logs</button>
+<button onclick="clearLogs()">Clear Logs</button>
+
+<pre id="log"></pre>
+
+<script>
+  const video = document.getElementById("video");
+  const logView = document.getElementById("log");
+
+  const bitrateEl = document.getElementById("bitrate");
+  const throughputEl = document.getElementById("throughput");
+  const bufferEl = document.getElementById("buffer");
+
+  const logs = [];
+  const fragmentStartTimes = {};
+
+  function log(event, data) {
+    const entry = {
+      ts: new Date().toISOString(),
+      event,
+      data
+    };
+    logs.push(entry);
+    logView.textContent += JSON.stringify(entry, null, 2) + "\n";
+    logView.scrollTop = logView.scrollHeight;
+  }
+
+  const player = dashjs.MediaPlayer().create();
+  player.initialize(video, "manifest.mpd", true);
+
+  player.updateSettings({
+    debug: { logLevel: dashjs.Debug.LOG_LEVEL_NONE }
+  });
+
+  const events = dashjs.MediaPlayer.events;
+
+  /* =========================
+     ABR + BITRATE TRACKING
+     ========================= */
+
+  player.on(events.QUALITY_CHANGE_REQUESTED, e => {
+    log("QUALITY_CHANGE_REQUESTED", {
+      mediaType: e.mediaType,
+      newQuality: e.newQuality
+    });
+  });
+
+  player.on(events.QUALITY_CHANGE_RENDERED, e => {
+    const bitrates = player.getBitrateInfoListFor(e.mediaType);
+    const bitrate = bitrates[e.newQuality]?.bitrate || 0;
+
+    bitrateEl.textContent = Math.round(bitrate / 1000);
+
+    log("QUALITY_CHANGE_RENDERED", {
+      mediaType: e.mediaType,
+      quality: e.newQuality,
+      bitrate
+    });
+  });
+
+  /* =========================
+     BUFFER LEVEL
+     ========================= */
+
+  player.on(events.BUFFER_LEVEL_UPDATED, e => {
+    bufferEl.textContent = e.bufferLevel.toFixed(2);
+
+    log("BUFFER_LEVEL_UPDATED", {
+      mediaType: e.mediaType,
+      bufferLevel: e.bufferLevel
+    });
+  });
+
+  /* =========================
+     SEGMENT TIMING + THROUGHPUT
+     ========================= */
+
+  player.on(events.FRAGMENT_LOADING_STARTED, e => {
+    if (!e.request || !e.request.url) return;
+
+    fragmentStartTimes[e.request.url] = performance.now();
+
+    log("FRAGMENT_LOADING_STARTED", {
+      url: e.request.url,
+      quality: e.request.quality,
+      mediaType: e.request.mediaType
+    });
+  });
+
+  player.on(events.FRAGMENT_LOADING_COMPLETED, e => {
+    if (!e.request || !e.request.url) return;
+
+    const start = fragmentStartTimes[e.request.url];
+    const end = performance.now();
+    const durationMs = end - start;
+
+    const bytes = e.request.bytesLoaded || 0;
+    const throughputKbps = durationMs > 0
+      ? Math.round((bytes * 8) / durationMs)
+      : 0;
+
+    throughputEl.textContent = throughputKbps;
+
+    log("FRAGMENT_LOADING_COMPLETED", {
+      url: e.request.url,
+      mediaType: e.request.mediaType,
+      quality: e.request.quality,
+      durationMs,
+      bytes,
+      throughputKbps
+    });
+  });
+
+  /* =========================
+     ERROR HANDLING
+     ========================= */
+
+  player.on(events.ERROR, e => {
+    log("ERROR", e);
+  });
+
+  /* =========================
+     HTML5 VIDEO EVENTS
+     ========================= */
+
+  [
+    "play", "pause", "seeking", "seeked",
+    "waiting", "stalled", "ended"
+  ].forEach(ev => {
+    video.addEventListener(ev, () => {
+      log("HTML5_" + ev, {
+        currentTime: video.currentTime,
+        readyState: video.readyState
+      });
+    });
+  });
+
+  /* =========================
+     LOG EXPORT
+     ========================= */
+
+  function downloadLogs() {
+    const blob = new Blob(
+      [JSON.stringify(logs, null, 2)],
+      { type: "application/json" }
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "dashjs-telemetry-log.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function clearLogs() {
+    logs.length = 0;
+    logView.textContent = "";
+  }
+</script>
+
+</body>
+</html>
+
