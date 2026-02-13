@@ -24,20 +24,24 @@ for INPUT in "$SOURCE"/*; do
     mkdir -p "$OUTDIR"
     for i in ${!res[@]}; do
 	BUFSIZE=$(( 2 * ${bitrate[i]%k} ))k # Sets buffer size
+	# Next command calls ffmpeg for first pass.
+	# -g and keyint_min set the max and min intervals for key frames/i-frames. Should use the same number. Recommended to use fps*segment_length (in seconds)
+	# -force_key_frames sets how often key frames must be forced. Should be set up to force at intervals equal to or less than segment length. If segment length changes, the expr following should change to match
+	# -pass 1 and -passlogfile tell ffmpeg this is the first pass and create a log file to be passed to second pass.
         ffmpeg -y -i "$INPUT" -vf "scale=${res[i]}" -c:v libx264 \
             -b:v ${bitrate[i]} -minrate:v ${bitrate[i]} \
             -maxrate:v ${bitrate[i]} -bufsize:v ${BUFSIZE} \
-            -g 120 -keyint_min 120 \ # Number of frames for max and min keyframe intervals. Recommended to use same intervals for both. Should not exceed segmentLength*fps
-            -force_key_frames "expr:gte(t,n_forced*4)" \ # forces key frames at 4 sec intervals to work with segment length
-	    -pass 1 -passlogfile "$OUTDIR/res_$i.log" -an -f mp4 /dev/null # Creates log file for pass 2
-	   
+            -g 120 -keyint_min 120 \
+	    -force_key_frames "expr:gte(t,n_forced*4)" \
+	    -pass 1 -passlogfile "$OUTDIR/res_$i.log" -an -f mp4 /dev/null
        	if [ $i -eq 0 ]; then # If first resolution/bitrate, also encodes audio, skips audio if not
+		# -pass 2 and -passlogfile tell ffmpeg this is the second pass and pass the log file from first pass
             ffmpeg -y -i "$INPUT" -vf "scale=${res[i]}" -c:v libx264 \
                 -b:v ${bitrate[i]} -minrate:v ${bitrate[i]} \
                 -maxrate:v ${bitrate[i]} -bufsize:v ${BUFSIZE} \
                 -g 120 -keyint_min 120 \
                 -force_key_frames "expr:gte(t,n_forced*4)" \
-                -pass 2 -passlogfile "$OUTDIR/res_$i.log" \ # pass 2, uses logfile from pass 1
+                -pass 2 -passlogfile "$OUTDIR/res_$i.log" \
 		-c:a aac -b:a 128k -ac 2 "$OUTDIR/res_$i.mp4"
         else
             ffmpeg -y -i "$INPUT" -vf "scale=${res[i]}" -c:v libx264 \
